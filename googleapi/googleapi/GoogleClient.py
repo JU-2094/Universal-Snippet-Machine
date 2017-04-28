@@ -30,5 +30,5 @@ class GoogleClient:
                 if start>100:
                     break
         except:
-            log.error(" API_GOOGLE CUSTOM_SEARCH: %s","Cuote of 100 queries surpased")
+            log.error(" API_GOOGLE CUSTOM_SEARCH: %s","Cuote of 100 queries per day surpased")
             return None
