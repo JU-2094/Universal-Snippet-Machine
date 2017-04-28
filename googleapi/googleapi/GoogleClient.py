@@ -1,4 +1,5 @@
 import pprint
+import logging as log
 from googleapiclient.discovery import build
 
 
@@ -15,16 +16,19 @@ class GoogleClient:
 
     def get_snippet(self,search):
         start = 1
-        while True:
-            res = self.service.cse().list(
-                q='Ivan',
-                cx=self.customEngine,
-                start=str(start)
-            ).execute()
+        try:
+            while True:
+                res = self.service.cse().list(
+                    q='Ivan',
+                    cx=self.customEngine,
+                    start=str(start)
+                ).execute()
 
-            yield res
+                yield res
 
-            start = start + 10
-            if start>100:
-                break
-
+                start = start + 10
+                if start>100:
+                    break
+        except:
+            log.error(" API_GOOGLE CUSTOM_SEARCH: %s","Cuote of 100 queries surpased")
+            return None
