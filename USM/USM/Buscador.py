@@ -27,7 +27,7 @@
 #           : thematic: the snippet's topic correspond to the theme and organization topics
 #           : biographic: the snippet's source document might containt biographica information \
 #                about the person
-#
+#       https://github.com/nltk/nltk/wiki/Porting-your-code-to-NLTK-3.0
 __author__="Jorge García Flores"
 __date__ ="$03-abr-2011 10:05:30$"
 
@@ -74,6 +74,8 @@ class NameParser:
         for ts in tag_tokens:
             terminals += ts[1] + " -> " + "'" + ts[0] + "'" + "\n    "
         grammar_rules = self.grammar_head + terminals
-        grammar = nltk.parse_cfg(grammar_rules)
+        #grammar = nltk.parse_cfg(grammar_rules)    --Deprecated
+        grammar = nltk.CFG.fromstring(grammar_rules)
         parser = nltk.ChartParser(grammar)
-        return parser.nbest_parse(tokens)
+        #return parser.nbest_parse(tokens)          --Deprecated
+        return parser.parse(tokens)
