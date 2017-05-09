@@ -9,6 +9,6 @@ import scrapy
 
 
 class UsmItem(scrapy.Item):
-    # define the fields for your item here like:
-    # name = scrapy.Field()
-    pass
+    title = scrapy.Field()
+    cite = scrapy.Field()
+    text = scrapy.Field()
