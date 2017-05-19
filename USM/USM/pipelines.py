@@ -5,7 +5,7 @@
 # Don't forget to add your pipeline to the ITEM_PIPELINES setting
 # See: http://doc.scrapy.org/en/latest/topics/item-pipeline.html
 import json
-#Todo remake the json or add to DB
+#Todo add to DB ask THEO
 
 
 class UsmPipeline(object):
@@ -16,7 +16,7 @@ class UsmPipeline(object):
         pass
 
     def open_spider(self, spider):
-        self.file = open('items', 'w')
+        self.file = open('data_collected_test3', 'w')
 
     def close_spider(self, spider):
         self.file.close()
