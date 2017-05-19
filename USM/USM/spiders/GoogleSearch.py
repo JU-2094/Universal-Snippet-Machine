@@ -7,10 +7,13 @@
     usage:
         scrapy crawl googlespider -a file='path_to_queries_file' 
 """
+# Todo: Check the ... in the cites and the complete url in google snippets ASK VLAD
+
 import scrapy
 from scrapy import Selector
 from scrapy.http import FormRequest,Request
 from USM.items import UsmItem
+from USM.learntools.BasicTool import Utils
 
 __author__ = "Josué Fabricio Urbina González"
 
@@ -28,10 +31,11 @@ class GoogleSpider(scrapy.Spider):
             self.file = ""
 
     def parse(self, response):
-        search = "Jorge Flores"
-        yield FormRequest.from_response(response,
-                                        formdata={'q': search},
-                                        callback=self.google_selector)
+        if self.file != "":
+            for search in Utils.get_query(Utils(), file=self.file):
+                yield FormRequest.from_response(response,
+                                                formdata={'q': search},
+                                                callback=self.google_selector)
 
     def google_selector(self, response):
         base_url = "https://www.google.com.mx/"
@@ -91,8 +95,3 @@ class GoogleSpider(scrapy.Spider):
                 self.log("--URL TO FOLLOW--")
                 self.log(base_url + url)
                 yield Request(base_url + url, callback=self.google_selector)
-
-    def create_page(self, body, name):
-        file = "web%s.html" % name
-        with open(file, 'wb') as f:
-            f.write(body)

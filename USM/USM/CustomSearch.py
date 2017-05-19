@@ -1,3 +1,13 @@
+# /usr/bin/env python
+# -*- coding: utf8 -*-
+"""
+    Requirements:
+        pip install --upgrade google-api-python-client
+    
+"""
+
+__author__ = "Josué Fabricio Urbina González"
+
 import pprint
 import logging as log
 import threading

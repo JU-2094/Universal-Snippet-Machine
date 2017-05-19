@@ -16,7 +16,7 @@ class UsmPipeline(object):
         pass
 
     def open_spider(self, spider):
-        self.file = open('data_collected_test3', 'w')
+        self.file = open('data_collected_test', 'w')
 
     def close_spider(self, spider):
         self.file.close()

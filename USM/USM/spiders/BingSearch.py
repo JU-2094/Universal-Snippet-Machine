@@ -11,6 +11,7 @@ import scrapy
 from scrapy.http import FormRequest,Request
 from scrapy import Selector
 from USM.items import UsmItem
+from USM.learntools.BasicTool import Utils
 
 __author__ = "Josué Fabricio Urbina González"
 
@@ -27,10 +28,11 @@ class BingSearch(scrapy.Spider):
             self.file = ""
 
     def parse(self, response):
-        search = "Jorge Flores"
-        yield FormRequest.from_response(response,
-                                        formdata={'q': search},
-                                        callback=self.bing_selector)
+        if self.file != "":
+            for search in Utils.get_query(Utils(), file=self.file):
+                yield FormRequest.from_response(response,
+                                                formdata={'q': search},
+                                                callback=self.bing_selector)
 
     def bing_selector(self, response):
         base_url = "https://www.bing.com/"
@@ -80,7 +82,7 @@ class BingSearch(scrapy.Spider):
         self.log("-----------NUMBER OF PAGE-----")
         if number.__len__() > 0:
             self.log(number[0]+"")
-            if int(number[0]) < 4:
+            if int(number[0]) < 5:
                 num = int(number[0])+1
                 num = str(num)
                 res = response.xpath("//li[@class='b_pag']/nav[@role='navigation']"
@@ -88,5 +90,4 @@ class BingSearch(scrapy.Spider):
                 for url in res:
                     self.log("--URL TO FOLLOW--")
                     self.log(base_url + url)
-                    # return Request(base_url + url, callback=self.collect_snippet)
                     yield Request(base_url + url, callback=self.bing_selector)
