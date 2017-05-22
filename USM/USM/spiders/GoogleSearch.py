@@ -7,7 +7,7 @@
     usage:
         scrapy crawl googlespider -a file='path_to_queries_file' 
 """
-# Todo: Check the ... in the cites and the complete url in google snippets ASK VLAD
+# Todo: Check the ... in the cites and the complete url in google snippets ASK
 
 import scrapy
 from scrapy import Selector
@@ -33,14 +33,18 @@ class GoogleSpider(scrapy.Spider):
     def parse(self, response):
         if self.file != "":
             for search in Utils.get_query(Utils(), file=self.file):
-                yield FormRequest.from_response(response,
+                request = FormRequest.from_response(response,
                                                 formdata={'q': search},
                                                 callback=self.google_selector)
+                request.meta['search'] = search
+                yield request
 
     def google_selector(self, response):
         base_url = "https://www.google.com.mx/"
         snippets = response.xpath("//div[@class='g']").extract()
         itemproc = self.crawler.engine.scraper.itemproc
+
+        search = response.meta['search']
 
         for snippet in snippets:
             storage_item = UsmItem()
@@ -78,10 +82,15 @@ class GoogleSpider(scrapy.Spider):
                 self.log(cite)
                 self.log("-------------TEXT--------------")
                 self.log(text)
+                self.log("----------QUERY----------------")
+                self.log(search)
 
                 storage_item['title'] = title
                 storage_item['cite'] = cite
                 storage_item['text'] = text
+                storage_item['query'] = search
+
+
 
                 itemproc.process_item(storage_item, self)
 
@@ -90,8 +99,10 @@ class GoogleSpider(scrapy.Spider):
         self.log(number[0] + "")
         if int(number[0]) < 6:
             res = response.xpath("//td[@class='b'][@style='text-align:left']/a[@class='fl']/@href").extract()
-            self.log(res)
+
             for url in res:
                 self.log("--URL TO FOLLOW--")
                 self.log(base_url + url)
-                yield Request(base_url + url, callback=self.google_selector)
+                request = Request(base_url + url, callback=self.google_selector)
+                request.meta['search'] = search
+                yield request

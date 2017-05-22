@@ -11,12 +11,15 @@ import scrapy
 from scrapy.http import FormRequest,Request
 from scrapy import Selector
 from USM.items import UsmItem
+from USM.learntools.BasicTool import Utils
 
 __author__ = "Josué Fabricio Urbina González"
+
 
 class CiteSearch(scrapy.Spider):
     name = "citespider"
     start_urls = ["http://citeseerx.ist.psu.edu/"]
+
 
     def __init__(self, file=None, *args, **kwargs):
         super(CiteSearch, self).__init__(*args, **kwargs)
@@ -26,40 +29,44 @@ class CiteSearch(scrapy.Spider):
             self.file = ""
 
     def parse(self, response):
-        search = "Jorge Flores"
-        yield FormRequest.from_response(response,
-                                        formdata={'q': search},
-                                        callback=self.cite_selector)
+        if self.file != "":
+            for search in Utils.get_query(Utils(), file=self.file):
+                request = FormRequest.from_response(response,
+                                                    formdata={'q': search},
+                                                    callback=self.cite_selector)
+                request.meta['search'] = search
+                yield request
 
     def cite_selector(self, response):
+        Utils.create_page(Utils(), response.body, "-citeseerx")
 
         base_url = "http://citeseerx.ist.psu.edu/"
         snippets = response.xpath("//div[@class='result']").extract()
         itemproc = self.crawler.engine.scraper.itemproc
 
+        search = response.meta['search']
+
         for snippet in snippets:
             storage_item = UsmItem()
 
-            title = Selector(text=snippet).xpath("//h3/a/text()").extract()
-            tmpTitle = Selector(text=snippet).xpath("//div[@class='pubinfo']")
+            title = Selector(text=snippet).xpath("//h3/a/node()").extract()
+            # tmpTitle = Selector(text=snippet).xpath("//div[@class='pubinfo']")
             cite = Selector(text=snippet).xpath("//h3/a/@href").extract()
             text = Selector(text=snippet).xpath("//div[@class='snippet']/text()").extract()
 
             if title.__len__() > 0:
-                title = title[0]
-                for s in ["authors","pubvenue","pubyear"]:
-                    tmp = Selector(text=snippet)\
-                        .xpath("//div[@class='pubinfo']/span[@class='"+s+"']/text()")\
-                        .extract()
-
-                    if tmp.__len__()>0:
-                        title = title + tmp
+                tmp = ""
+                for txt in title:
+                    for r in ['<em>', '</em>', '\n']:
+                        txt = txt.replace(r, '')
+                    tmp = tmp + txt
+                title = tmp.strip()
             else:
                 title = ""
 
             if cite.__len__() > 0:
                 #Todo check the url
-                cite = self.base_url + cite[0]
+                cite = base_url + cite[0]
             else:
                 cite=""
 
@@ -75,9 +82,28 @@ class CiteSearch(scrapy.Spider):
                 self.log(cite)
                 self.log("------------TEXT------------------")
                 self.log(text)
+                self.log("----------QUERY----------------")
+                self.log(search)
 
                 storage_item['title'] = title
                 storage_item['cite'] = cite
                 storage_item['text'] = text
+                storage_item['query'] = search
 
                 itemproc.process_item(storage_item, self)
+
+        num = response.xpath("//div[@id='result_info']/strong/text()").extract()
+
+        self.log("----------NUM OF ELEMENTS---------")
+        self.log(num[0].split(' ')[2])
+        num = num[0].split(' ')[2]
+
+        if int(num) < 60:
+            url = response.xpath("//div[@id='result_info']"
+                                 "/div[@id='pager']/a/@href").extract()
+            self.log("------------URL TO FOLLOW ------------")
+            self.log(base_url + url[0])
+
+            request = Request(base_url+url[0],callback=self.cite_selector)
+            request.meta['search'] = search
+            yield request

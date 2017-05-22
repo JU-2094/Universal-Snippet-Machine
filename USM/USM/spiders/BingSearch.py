@@ -15,6 +15,7 @@ from USM.learntools.BasicTool import Utils
 
 __author__ = "Josué Fabricio Urbina González"
 
+
 class BingSearch(scrapy.Spider):
 
     name = "bingspider"
@@ -30,14 +31,18 @@ class BingSearch(scrapy.Spider):
     def parse(self, response):
         if self.file != "":
             for search in Utils.get_query(Utils(), file=self.file):
-                yield FormRequest.from_response(response,
+                request = FormRequest.from_response(response,
                                                 formdata={'q': search},
                                                 callback=self.bing_selector)
+                request.meta['search'] = search
+                yield request
 
     def bing_selector(self, response):
         base_url = "https://www.bing.com/"
         snippets = response.xpath("//li[@class='b_algo']").extract()
         itemproc = self.crawler.engine.scraper.itemproc
+
+        search = response.meta['search']
 
         for snippet in snippets:
             storage_item = UsmItem()
@@ -71,12 +76,15 @@ class BingSearch(scrapy.Spider):
                 self.log(cite)
                 self.log("------------TEXT------------------")
                 self.log(text)
+                self.log("----------QUERY----------------")
+                self.log(search)
 
                 storage_item['title'] = title
                 storage_item['cite'] = cite
                 storage_item['text'] = text
+                storage_item['query'] = self.query
 
-                itemproc.process_item(storage_item,self)
+                itemproc.process_item(storage_item, self)
         number = response.xpath("//li[@class='b_pag']/nav[@role='navigation']"
                                 "//a[@class='sb_pagS']/text()").extract()
         self.log("-----------NUMBER OF PAGE-----")
@@ -90,4 +98,7 @@ class BingSearch(scrapy.Spider):
                 for url in res:
                     self.log("--URL TO FOLLOW--")
                     self.log(base_url + url)
-                    yield Request(base_url + url, callback=self.bing_selector)
+
+                    request = Request(base_url + url, callback=self.bing_selector)
+                    request.meta['search'] = search
+                    yield request

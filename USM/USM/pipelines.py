@@ -6,7 +6,7 @@
 # See: http://doc.scrapy.org/en/latest/topics/item-pipeline.html
 import json
 #Todo add to DB ask THEO
-
+#The item has field called query
 
 class UsmPipeline(object):
 

@@ -36,7 +36,8 @@ path = "/home/urb/PycharmProjects/unoporuno_scrapy/Test_Queries"
 process = CrawlerProcess(get_project_settings())
 
 # Spiders to be executed
-# process.crawl("GoogleSearch",file="")
 process.crawl("googlespider", file=path)
 process.crawl("bingspider", file=path)
+process.crawl("duckspider", file=path)
+process.crawl("citespider", file=path)
 process.start()
