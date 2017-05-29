@@ -88,7 +88,7 @@ class CiteSearch(scrapy.Spider):
                 storage_item['title'] = title
                 storage_item['cite'] = cite
                 storage_item['text'] = text
-                storage_item['query'] = search
+                storage_item['search'] = search
 
                 itemproc.process_item(storage_item, self)
 
@@ -102,8 +102,9 @@ class CiteSearch(scrapy.Spider):
             url = response.xpath("//div[@id='result_info']"
                                  "/div[@id='pager']/a/@href").extract()
             self.log("------------URL TO FOLLOW ------------")
-            self.log(base_url + url[0])
+            if url.__len__() > 0:
+                self.log(base_url + url[0])
 
-            request = Request(base_url+url[0],callback=self.cite_selector)
-            request.meta['search'] = search
-            yield request
+                request = Request(base_url+url[0],callback=self.cite_selector)
+                request.meta['search'] = search
+                yield request

@@ -12,4 +12,4 @@ class UsmItem(scrapy.Item):
     title = scrapy.Field()
     cite = scrapy.Field()
     text = scrapy.Field()
-    query = scrapy.Field()
+    search = scrapy.Field()

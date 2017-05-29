@@ -82,7 +82,7 @@ class BingSearch(scrapy.Spider):
                 storage_item['title'] = title
                 storage_item['cite'] = cite
                 storage_item['text'] = text
-                storage_item['query'] = self.query
+                storage_item['search'] = search
 
                 itemproc.process_item(storage_item, self)
         number = response.xpath("//li[@class='b_pag']/nav[@role='navigation']"

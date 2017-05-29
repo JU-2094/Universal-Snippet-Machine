@@ -7,7 +7,7 @@
     usage:
         scrapy crawl googlespider -a file='path_to_queries_file' 
 """
-# Todo: Check the ... in the cites and the complete url in google snippets ASK
+# Todo: Check the '...' in the cites and the complete url in google snippets
 
 import scrapy
 from scrapy import Selector
@@ -88,7 +88,7 @@ class GoogleSpider(scrapy.Spider):
                 storage_item['title'] = title
                 storage_item['cite'] = cite
                 storage_item['text'] = text
-                storage_item['query'] = search
+                storage_item['search'] = search
 
 
 
