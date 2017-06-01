@@ -32,9 +32,9 @@ class BingSearch(scrapy.Spider):
         if self.file != "":
             for search in Utils.get_query(Utils(), file=self.file):
                 request = FormRequest.from_response(response,
-                                                formdata={'q': search},
-                                                callback=self.bing_selector)
-                request.meta['search'] = search
+                                                    formdata={'q': search[1]},
+                                                    callback=self.bing_selector)
+                request.meta['search'] = search[0]
                 yield request
 
     def bing_selector(self, response):
