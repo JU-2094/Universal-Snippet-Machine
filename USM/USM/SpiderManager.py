@@ -2,40 +2,69 @@
 # -*- coding: utf-8 -*-
 # Todo: Special Selector for https://academic.microsoft.com/ and http://www.sciencedirect.com/ , academia.edu
 # Todo: fill DB
-# Todo: adapt all the spiders to storage the id of person
+# Todo Adaptar al codigo de Theo con json
+# Todo Hacer filtros para los features
+
 """
 Script wich executes the spiders to storage the data. The query to the file with names must
 be changed.
 
 Todo.
-how to import sql .sql 
-142 y 101 , 129  Rows
+142 y 101 , 129  Rows in tables
 
 Busqueda **
     Persona ** 
         Snippets
 
-Abrir base de datos en máquina
-Usar datos existentes y los de Theo
-    Escribir datos BLOQUEA CON 2 [s], seguir probando
-        Hasta bloqueo
-    Ampliar (combinaciones), Extraer sintagmas nominales, 
-    
-    Extraer en la tabla persona
-        Tema
-        Instituciones
-        Lugares
-
-
     Tomar en cuenta la prob de ocurrencia de un nombre
     Extraer del censo los nombres y sacar prob.
     
-    
-    id  -- busqueda
-        id -- persona
-            hacer combinaciones de datos
-            aplicar filtro
-            guardar en db
+"""
+"""
+gazet -> Lista de palabras
+Si está contenida 
+
+Name -> Parser de la grámatica para hacer combinaciones
+
+Features
+        - Nombre presente  
+                - Usando one-hot encoded
+                compresión. artículo Jorge
+        - Lugar
+                -one-hot       
+                Lugar de méxico y de Francia
+        - Tema
+                -Jorge            match  ...  ???
+        - Organizaciones
+        
+        NOTE: Google -> with 3 seconds realizes is a bot
+        -------------------------------------------------------------
+        Todo 
+        Learn about this
+        LSTM Long short time memory  neural network
+
+        Filtro nominal
+                Filtro semantico
+                        LSTM
+
+        Add  what has been search in the dump data... because fuck it         
+        
+        ---------------
+        
+        U - Ver que modulos usar para el LSTM...
+        
+        Repetir el experimento de JAPTAL'2012 con lstm en ves de svm 
+                . Probar acc. de filtro nominal                 - H = Jorge
+                . mejoras de antiguo clasificador.      Freeling. 
+                        . entidades nombradas
+                        . topónimos             
+                        rapido que no tome hrs
+                . intentar la ultima versión de freeling        -U, H
+                . juegos de datos:
+                        . los mismos en JAPTAL'2012
+                        . corups conacyt fernando
+        
+        ---
 """
 
 from scrapy.crawler import CrawlerProcess
@@ -50,8 +79,8 @@ query = "select up.id,up.busqueda_id,up.name,up.geo,up.orgs,up.topics " \
 process = CrawlerProcess(get_project_settings())
 
 # Spiders to be executed
-process.crawl("googlespider", file=query)
-process.crawl("bingspider", file=query)
-process.crawl("duckspider", file=query)
-process.crawl("citespider", file=query)
+process.crawl("googlespider", source=query)
+process.crawl("bingspider", source=query)
+process.crawl("duckspider", source=query)
+process.crawl("citespider", source=query)
 process.start()

@@ -5,10 +5,10 @@
 
     Spider to extract data from google
     usage:
-        scrapy crawl bingspider -a file='path_to_queries_file' 
+        scrapy crawl bingspider -a source=<"query"|"file_json"> 
 """
 import scrapy
-from scrapy.http import FormRequest,Request
+from scrapy.http import FormRequest, Request
 from scrapy import Selector
 from USM.items import UsmItem
 from USM.learntools.BasicTool import Utils
@@ -20,31 +20,33 @@ class CiteSearch(scrapy.Spider):
     name = "citespider"
     start_urls = ["http://citeseerx.ist.psu.edu/"]
 
-
-    def __init__(self, file=None, *args, **kwargs):
+    def __init__(self, source=None, *args, **kwargs):
         super(CiteSearch, self).__init__(*args, **kwargs)
-        if file is not None:
-            self.file = file
+        if source is not None:
+            self.source = source
         else:
-            self.file = ""
+            self.source = ""
 
     def parse(self, response):
-        if self.file != "":
-            for search in Utils.get_query(Utils(), file=self.file):
+        if self.source != "":
+            for search in Utils.get_query(Utils(), query=self.source):
                 request = FormRequest.from_response(response,
-                                                    formdata={'q': search[1]},
+                                                    formdata={'q': search[2]},
                                                     callback=self.cite_selector)
                 request.meta['search'] = search[0]
+                request.meta['attr'] = search[1]
+
                 yield request
 
     def cite_selector(self, response):
-        Utils.create_page(Utils(), response.body, "-citeseerx")
+        # Utils.create_page(Utils(), response.body, "-citeseerx")
 
         base_url = "http://citeseerx.ist.psu.edu/"
         snippets = response.xpath("//div[@class='result']").extract()
         itemproc = self.crawler.engine.scraper.itemproc
 
         search = response.meta['search']
+        base_attr = response.meta['attr']
 
         for snippet in snippets:
             storage_item = UsmItem()
@@ -65,7 +67,6 @@ class CiteSearch(scrapy.Spider):
                 title = ""
 
             if cite.__len__() > 0:
-                #Todo check the url
                 cite = base_url + cite[0]
             else:
                 cite=""
@@ -76,19 +77,24 @@ class CiteSearch(scrapy.Spider):
                 text=""
 
             if cite != "":
+                self.log("---------------------------------")
                 self.log("------------TITLE----------------")
                 self.log(title)
-                self.log("------------CITE------------------")
+                self.log("------------CITE-----------------")
                 self.log(cite)
-                self.log("------------TEXT------------------")
+                self.log("------------TEXT-----------------")
                 self.log(text)
-                self.log("----------QUERY----------------")
+                self.log("------------QUERY----------------")
                 self.log(search)
+                self.log("--------------ATTR---------------")
+                self.log(base_attr)
+
 
                 storage_item['title'] = title
                 storage_item['cite'] = cite
                 storage_item['text'] = text
                 storage_item['search'] = search
+                storage_item['attr'] = base_attr
 
                 itemproc.process_item(storage_item, self)
 
@@ -107,4 +113,5 @@ class CiteSearch(scrapy.Spider):
 
                 request = Request(base_url+url[0],callback=self.cite_selector)
                 request.meta['search'] = search
+                request.meta['attr'] = base_attr
                 yield request

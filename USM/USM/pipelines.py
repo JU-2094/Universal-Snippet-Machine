@@ -6,7 +6,8 @@
 # See: http://doc.scrapy.org/en/latest/topics/item-pipeline.html
 import json
 #Todo add to DB ask THEO
-#The item has field called query
+# Each dict has {"search":"id", "attr" : ["name","locations","organizations","topics"],
+#               "cite":"url", "text" : "text", "title" : "title"}
 
 class UsmPipeline(object):
 
@@ -16,12 +17,12 @@ class UsmPipeline(object):
         pass
 
     def open_spider(self, spider):
-        self.file = open('data_collected_test', 'w')
+        self.file = open('data_collected_test5', 'w')
 
     def close_spider(self, spider):
         self.file.close()
 
     def process_item(self, item, spider):
         line = json.dumps(dict(item)) + "\n"
-        self.file.write(line)
+        # self.file.write(line)
         return item

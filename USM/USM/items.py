@@ -13,3 +13,4 @@ class UsmItem(scrapy.Item):
     cite = scrapy.Field()
     text = scrapy.Field()
     search = scrapy.Field()
+    attr = scrapy.Field()

@@ -5,13 +5,14 @@
 
     Spider to extract data from google
     usage:
-        scrapy crawl googlespider -a file='path_to_queries_file' 
+        scrapy crawl googlespider -a source=<"query"|"file_json"> 
 """
-# Todo: Check the '...' in the cites and the complete url in google snippets
+# ToDo verify that cites were scrapped correctly
+# ToDo Adjust the DOWNLOAD_DELAY
 
 import scrapy
 from scrapy import Selector
-from scrapy.http import FormRequest,Request
+from scrapy.http import FormRequest, Request
 from USM.items import UsmItem
 from USM.learntools.BasicTool import Utils
 
@@ -23,20 +24,24 @@ class GoogleSpider(scrapy.Spider):
     name = "googlespider"
     start_urls = ["https://www.google.com.mx/"]
 
-    def __init__(self, file=None, *args, **kwargs):
+    custom_settings = {'DOWNLOAD_DELAY': '5'}
+
+    def __init__(self, source=None, *args, **kwargs):
         super(GoogleSpider, self).__init__(*args, **kwargs)
-        if file is not None:
-            self.file = file
+        if source is not None:
+            self.source = source
         else:
-            self.file = ""
+            self.source = ""
 
     def parse(self, response):
-        if self.file != "":
-            for search in Utils.get_query(Utils(), file=self.file):
+        if self.source != "":
+            for search in Utils.get_query(Utils(), query=self.source):
                 request = FormRequest.from_response(response,
-                                                    formdata={'q': search[1]},
+                                                    formdata={'q': search[2]},
                                                     callback=self.google_selector)
                 request.meta['search'] = search[0]
+                request.meta['attr'] = search[1]
+
                 yield request
 
     def google_selector(self, response):
@@ -45,6 +50,7 @@ class GoogleSpider(scrapy.Spider):
         itemproc = self.crawler.engine.scraper.itemproc
 
         search = response.meta['search']
+        base_attr = response.meta['attr']
 
         for snippet in snippets:
             storage_item = UsmItem()
@@ -76,20 +82,23 @@ class GoogleSpider(scrapy.Spider):
                 text = ""
 
             if cite != "":
-                self.log("----------------TITLE-----------")
+                self.log("---------------------------------")
+                self.log("--------------TITLE--------------")
                 self.log(title)
-                self.log("-------------CITE--------------")
+                self.log("-------------CITE----------------")
                 self.log(cite)
-                self.log("-------------TEXT--------------")
+                self.log("---------------TEXT--------------")
                 self.log(text)
-                self.log("----------QUERY----------------")
+                self.log("------------QUERY----------------")
                 self.log(search)
+                self.log("--------------ATTR---------------")
+                self.log(base_attr)
 
                 storage_item['title'] = title
                 storage_item['cite'] = cite
                 storage_item['text'] = text
                 storage_item['search'] = search
-
+                storage_item['attr'] = base_attr
 
 
                 itemproc.process_item(storage_item, self)
@@ -105,4 +114,5 @@ class GoogleSpider(scrapy.Spider):
                 self.log(base_url + url)
                 request = Request(base_url + url, callback=self.google_selector)
                 request.meta['search'] = search
+                request.meta['attr'] = base_attr
                 yield request

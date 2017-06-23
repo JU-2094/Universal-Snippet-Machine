@@ -5,10 +5,10 @@
 
     Spider to extract data from google
     usage:
-        scrapy crawl bingspider -a file='path_to_queries_file' 
+        scrapy crawl bingspider -a source=<"query"|"file_json"> 
 """
 import scrapy
-from scrapy.http import FormRequest,Request
+from scrapy.http import FormRequest, Request
 from scrapy import Selector
 from USM.items import UsmItem
 from USM.learntools.BasicTool import Utils
@@ -21,20 +21,22 @@ class BingSearch(scrapy.Spider):
     name = "bingspider"
     start_urls = ["https://www.bing.com/"]
 
-    def __init__(self, file=None, *args, **kwargs):
+    def __init__(self, source=None, *args, **kwargs):
         super(BingSearch, self).__init__(*args, **kwargs)
-        if file is not None:
-            self.file = file
+        if source is not None:
+            self.source = source
         else:
-            self.file = ""
+            self.source = ""
 
     def parse(self, response):
-        if self.file != "":
-            for search in Utils.get_query(Utils(), file=self.file):
+        if self.source != "":
+            for search in Utils.get_query(Utils(), query=self.source):
                 request = FormRequest.from_response(response,
-                                                    formdata={'q': search[1]},
+                                                    formdata={'q': search[2]},
                                                     callback=self.bing_selector)
                 request.meta['search'] = search[0]
+                request.meta['attr'] = search[1]
+
                 yield request
 
     def bing_selector(self, response):
@@ -43,6 +45,8 @@ class BingSearch(scrapy.Spider):
         itemproc = self.crawler.engine.scraper.itemproc
 
         search = response.meta['search']
+        base_attr = response.meta['attr']
+
 
         for snippet in snippets:
             storage_item = UsmItem()
@@ -72,22 +76,25 @@ class BingSearch(scrapy.Spider):
             if cite != "":
                 self.log("------------TITLE----------------")
                 self.log(title)
-                self.log("------------CITE------------------")
+                self.log("------------CITE-----------------")
                 self.log(cite)
-                self.log("------------TEXT------------------")
+                self.log("------------TEXT-----------------")
                 self.log(text)
-                self.log("----------QUERY----------------")
+                self.log("----------QUERY------------------")
                 self.log(search)
+                self.log("--------------ATTR---------------")
+                self.log(base_attr)
 
                 storage_item['title'] = title
                 storage_item['cite'] = cite
                 storage_item['text'] = text
                 storage_item['search'] = search
+                storage_item['attr'] = base_attr
 
                 itemproc.process_item(storage_item, self)
         number = response.xpath("//li[@class='b_pag']/nav[@role='navigation']"
                                 "//a[@class='sb_pagS']/text()").extract()
-        self.log("-----------NUMBER OF PAGE-----")
+        self.log("-----------NUMBER OF PAGE-------")
         if number.__len__() > 0:
             self.log(number[0]+"")
             if int(number[0]) < 5:
@@ -101,4 +108,5 @@ class BingSearch(scrapy.Spider):
 
                     request = Request(base_url + url, callback=self.bing_selector)
                     request.meta['search'] = search
+                    request.meta['attr'] = base_attr
                     yield request
