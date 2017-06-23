@@ -26,7 +26,7 @@ class Utils:
         name = values[0]
         for x in values[1:]:
             for v in x.split(";"):
-                if v!="":
+                if v != "":
                     val = name + ", " + v
                     yield(val)
 
@@ -46,4 +46,4 @@ class Utils:
             id = row[0]
             vals = row[2:]
             for search in self.make_combination(vals):
-                yield (id, search)
+                yield (id, vals, search)
