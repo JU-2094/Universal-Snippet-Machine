@@ -9,16 +9,8 @@
 Script wich executes the spiders to storage the data. The query to the file with names must
 be changed.
 
-Todo.
-142 y 101 , 129  Rows in tables
 
-Busqueda **
-    Persona ** 
-        Snippets
-
-    Tomar en cuenta la prob de ocurrencia de un nombre
-    Extraer del censo los nombres y sacar prob.
-    
+142 y 101 , 129  Rows in tables    
 """
 """
 gazet -> Lista de palabras
@@ -37,7 +29,7 @@ Features
                 -Jorge            match  ...  ???
         - Organizaciones
         
-        NOTE: Google -> with 3 seconds realizes is a bot
+        NOTE: Google -> with 4 seconds realizes is a bot
         -------------------------------------------------------------
         Todo 
         Learn about this
@@ -62,8 +54,7 @@ Features
                 . intentar la ultima versión de freeling        -U, H
                 . juegos de datos:
                         . los mismos en JAPTAL'2012
-                        . corups conacyt fernando
-        
+                        . corpus conacyt fernando
         ---
 """
 

@@ -7,8 +7,7 @@
     usage:
         scrapy crawl googlespider -a source=<"query"|"file_json"> 
 """
-# ToDo verify that cites were scrapped correctly
-# ToDo Adjust the DOWNLOAD_DELAY
+# Note Adjust the DOWNLOAD_DELAY
 
 import scrapy
 from scrapy import Selector
@@ -39,9 +38,9 @@ class GoogleSpider(scrapy.Spider):
                 request = FormRequest.from_response(response,
                                                     formdata={'q': search[2]},
                                                     callback=self.google_selector)
-                request.meta['search'] = search[0]
+                request.meta['id_person'] = search[0]
                 request.meta['attr'] = search[1]
-
+                request.meta['search'] = search[2]
                 yield request
 
     def google_selector(self, response):
@@ -49,8 +48,9 @@ class GoogleSpider(scrapy.Spider):
         snippets = response.xpath("//div[@class='g']").extract()
         itemproc = self.crawler.engine.scraper.itemproc
 
-        search = response.meta['search']
+        id_person = response.meta['id_person']
         base_attr = response.meta['attr']
+        search = response.meta['search']
 
         for snippet in snippets:
             storage_item = UsmItem()
@@ -89,7 +89,9 @@ class GoogleSpider(scrapy.Spider):
                 self.log(cite)
                 self.log("---------------TEXT--------------")
                 self.log(text)
-                self.log("------------QUERY----------------")
+                self.log("------------ID PERSON------------")
+                self.log(id_person)
+                self.log("------------SEARCH---------------")
                 self.log(search)
                 self.log("--------------ATTR---------------")
                 self.log(base_attr)
@@ -97,6 +99,7 @@ class GoogleSpider(scrapy.Spider):
                 storage_item['title'] = title
                 storage_item['cite'] = cite
                 storage_item['text'] = text
+                storage_item['id_person'] = id_person
                 storage_item['search'] = search
                 storage_item['attr'] = base_attr
 
@@ -113,6 +116,7 @@ class GoogleSpider(scrapy.Spider):
                 self.log("--URL TO FOLLOW--")
                 self.log(base_url + url)
                 request = Request(base_url + url, callback=self.google_selector)
+                request.meta['id_person'] = id_person
                 request.meta['search'] = search
                 request.meta['attr'] = base_attr
                 yield request
