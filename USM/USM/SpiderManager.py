@@ -3,7 +3,8 @@
 # Todo: Special Selector for https://academic.microsoft.com/ and http://www.sciencedirect.com/ , academia.edu
 # Todo: fill DB
 # Todo Adaptar al codigo de Theo con json
-# Todo Hacer filtros para los features
+
+# Todo Freeling, when detecting the language check if all configuration files exits
 
 """
 Script wich executes the spiders to storage the data. The query to the file with names must
@@ -11,23 +12,20 @@ be changed.
 
 
 142 y 101 , 129  Rows in tables    
+
+
+instalar:
+        librería 
+                Keras.io
+                
+                
+                LSTM
+                
+                testing 50 personas
+                trainning lo demás
+                
 """
 """
-gazet -> Lista de palabras
-Si está contenida 
-
-Name -> Parser de la grámatica para hacer combinaciones
-
-Features
-        - Nombre presente  
-                - Usando one-hot encoded
-                compresión. artículo Jorge
-        - Lugar
-                -one-hot       
-                Lugar de méxico y de Francia
-        - Tema
-                -Jorge            match  ...  ???
-        - Organizaciones
         
         NOTE: Google -> with 4 seconds realizes is a bot
         -------------------------------------------------------------
@@ -38,12 +36,10 @@ Features
         Filtro nominal
                 Filtro semantico
                         LSTM
-
-        Add  what has been search in the dump data... because fuck it         
         
         ---------------
         
-        U - Ver que modulos usar para el LSTM...
+        U - Instalación de keras, para LSTM, done
         
         Repetir el experimento de JAPTAL'2012 con lstm en ves de svm 
                 . Probar acc. de filtro nominal                 - H = Jorge
@@ -51,11 +47,31 @@ Features
                         . entidades nombradas
                         . topónimos             
                         rapido que no tome hrs
-                . intentar la ultima versión de freeling        -U, H
+                . activar el NER classifier freeling        -U.  DONE
                 . juegos de datos:
                         . los mismos en JAPTAL'2012
                         . corpus conacyt fernando
+                
+        SLACK viernes 7 Julio
+                a las 11 @jorge
+                
+        
+        checar unoporuno_svm_person_classification
+            testing set 101,   uruguayos
+            
+            aprendizaje
+            748
+            142 For scientometric_corrected - 477,  aprendizaje
+            
+        
+        
+        TODO hacer pruebas del filtro con el pressision and recall
+        y pensar en como vectorizar el snippet para el lstm
+            
         ---
+        
+        
+        Para el filtro nominal es la 119
 """
 
 from scrapy.crawler import CrawlerProcess

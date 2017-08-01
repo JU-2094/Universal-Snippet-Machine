@@ -47,3 +47,15 @@ class Utils:
             vals = row[2:]
             for search in self.make_combination(vals):
                 yield (id, vals, search)
+
+    def exec_query(self, query):
+        db = sql.Connect(self.host_db, self.user, self.pswd, self.name_db)
+        cursor = db.cursor()
+
+        try:
+            cursor.execute(query)
+        except:
+            db.rollback()
+        results = cursor.fetchall()
+        db.close()
+        return results

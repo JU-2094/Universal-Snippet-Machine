@@ -1,8 +1,14 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 import nltk
 import numpy as np
 import re
 import freeling
 import configparser
+
+
+__author__ = "Josué Fabricio Urbina González"
 
 """
 Personal Notes:
@@ -18,8 +24,6 @@ Personal Notes:
     Terminal nodes in the Chompsky Normal Form:
     I , AA, AG, AD
 
-NOTE:
-    The working path is unoporuno_scrapy
 """
 
 
@@ -79,6 +83,11 @@ class FeatureFilter:
         nominal = NominalFilter(self.base_name)
         return nominal.filter(snippet)
 
+    def has_nominal(self, snippet):
+        nominal = NominalFilter(self.base_name)
+        vector = nominal.filter(snippet)
+        return np.count_nonzero(vector) > 0
+
 
 class NominalFilter:
 
@@ -87,7 +96,6 @@ class NominalFilter:
         name = Cleaner.clean_reserved_xml(Cleaner(), name)
         self.tree = NameParser.parse(NameParser(), name)
         self.list_regex = self._name_variations()
-
         self.dic_vect = {'L': 0, 'C': 1, 'E': 2, 'X': 3, 'V': 4}
 
     def _add_variation(self, reg, variation, label):
@@ -98,7 +106,7 @@ class NominalFilter:
         if reg not in variation.get(label):
             variation.get(label).append(reg)
 
-    def _compression(self, cn, la):
+    def _compression(self, cn, la, initials):
 
         list_reg = []
 
@@ -113,12 +121,12 @@ class NominalFilter:
             else:
                 lastname += partition + a
 
-        partition = '\.?[\s]*?'
+        partition = '\.?[\s]*?,?'
 
 
         for n in cn:
             n = n[0]
-            if name=="":
+            if name == "":
                 name = n
             else:
                 name += partition + n
@@ -126,6 +134,17 @@ class NominalFilter:
             list_reg.append(la[0] + partition2 + n + partition)
             list_reg.append(n + partition + lastname)
             list_reg.append(lastname + partition2 + n + partition)
+
+        list_reg.append(name + partition + la[0])
+        list_reg.append(la[0] + partition2 + name + partition)
+        list_reg.append(name + partition + lastname)
+        list_reg.append(lastname + partition2 + name + partition)
+
+        for i in initials.get('N'):
+            name += partition + i
+
+        for i in initials.get('A'):
+            name += partition + i
 
         list_reg.append(name + partition + la[0])
         list_reg.append(la[0] + partition2 + name + partition)
@@ -169,13 +188,14 @@ class NominalFilter:
         for reg in list_reg:
             yield reg
 
-    def _inversion(self, vcn, la):
+    def _inversion(self, vcn, la, initials):
         list_reg = []
 
         lastname = ""
         name = ""
+        cname = ""
         partition = ',?[\s]*?'
-        partition2 = '[\s-]+?'
+        partition2 = '[\s-]+?[a-z]*?[\s-]+?'
         partition3 = '\.?-?'
         partition4 = '\.?'
 
@@ -196,7 +216,6 @@ class NominalFilter:
 
             name = ""
 
-
         for reg in list_reg:
             yield reg
 
@@ -206,6 +225,7 @@ class NominalFilter:
 
         partition = '[\s-]+?'
         partition2 = ',?[\s]*?'
+        partition_xtra = '(\s[a-z]+\s)+?'
         name = ""
         lastname = ""
 
@@ -221,8 +241,8 @@ class NominalFilter:
                 else:
                     name += partition2 + n
 
-                list_reg.append(lastname)
-                list_reg.append(name + partition2 + lastname)
+                list_reg.append(partition_xtra+lastname+partition_xtra)
+                list_reg.append(name + partition2 + lastname + partition_xtra)
                 list_reg.append(lastname + partition2 + name)
 
             for n in initials.get("N"):
@@ -238,15 +258,16 @@ class NominalFilter:
         for reg in list_reg:
             yield reg
 
-    def _extra_element(self, ln, la):
+    def _extra_element(self, ln, la, initials):
 
         list_reg = []
 
         name = ""
         lastname = ""
 
-        partition = '[A-Z][a-z]+'
-        partition2 = '[\s]+'
+        partition = '[A-Z][a-z]*.?'
+        partition2 = '[\s-]+?'
+        partition3 = '[\s\.,]+?'
 
         for a in la:
             if lastname == "":
@@ -264,6 +285,14 @@ class NominalFilter:
 
         list_reg.append(name + partition2 + partition + partition2 + lastname)
 
+        for i in initials.get('N'):
+            name += partition2 + i.replace('.', '') + partition3
+
+        for i in initials.get('A'):
+            name += partition2 + i.replace('.', '') + partition3
+
+        list_reg.append(name + partition2 + partition + partition2 + lastname)
+
         for reg in list_reg:
             yield reg
 
@@ -274,7 +303,6 @@ class NominalFilter:
         initials = {"N": [], "A": []}
 
         for tree in self.tree:
-            print(tree)
             for person in tree:
                 if person.label() == 'N':
                     for node in person.subtrees(lambda k: k.height() == 2):
@@ -313,25 +341,52 @@ class NominalFilter:
                                 surnames.append(t)
             break
 
-        # --- Debugging ---
-        print(names)
-        print(surnames)
-        print(initials)
-
         if surnames.__len__() > 0:
             for reg in self._literal(names, surnames, initials):
                 self._add_variation(reg, variations, 'L')
 
-            for reg in self._compression(names, surnames):
+            for reg in self._compression(names, surnames, initials):
                 self._add_variation(reg, variations, 'C')
 
             for reg in self._expansion(names, surnames, initials):
                 self._add_variation(reg, variations, 'E')
 
-            for reg in self._extra_element(names, surnames):
+            for reg in self._extra_element(names, surnames, initials):
                 self._add_variation(reg, variations, 'X')
 
-            for reg in self._inversion(names, surnames):
+            for reg in self._inversion(names, surnames, initials):
+                self._add_variation(reg, variations, 'V')
+
+            surnames = list(map(lambda x: x.upper(), surnames))
+            for reg in self._literal(names, surnames, initials):
+                self._add_variation(reg, variations, 'L')
+
+            for reg in self._compression(names, surnames, initials):
+                self._add_variation(reg, variations, 'C')
+
+            for reg in self._expansion(names, surnames, initials):
+                self._add_variation(reg, variations, 'E')
+
+            for reg in self._extra_element(names, surnames, initials):
+                self._add_variation(reg, variations, 'X')
+
+            for reg in self._inversion(names, surnames, initials):
+                self._add_variation(reg, variations, 'V')
+
+            names = list(map(lambda x: x.upper(), names))
+            for reg in self._literal(names, surnames, initials):
+                self._add_variation(reg, variations, 'L')
+
+            for reg in self._compression(names, surnames, initials):
+                self._add_variation(reg, variations, 'C')
+
+            for reg in self._expansion(names, surnames, initials):
+                self._add_variation(reg, variations, 'E')
+
+            for reg in self._extra_element(names, surnames, initials):
+                self._add_variation(reg, variations, 'X')
+
+            for reg in self._inversion(names, surnames, initials):
                 self._add_variation(reg, variations, 'V')
 
         return variations
@@ -341,7 +396,7 @@ class NominalFilter:
         snippet = Cleaner.remove_accent(Cleaner(), snippet)
         snippet = Cleaner.clean_reserved_xml(Cleaner(), snippet)
 
-        vect = np.zeros(self.list_regex.__len__())
+        vector = np.zeros(self.list_regex.__len__())
 
         for item in self.list_regex.items():
             label = item[0]
@@ -349,9 +404,9 @@ class NominalFilter:
                 regex = re.compile(pattern)
 
                 if regex.search(snippet):
-                    vect[self.dic_vect.get(label)] = 1
+                    vector[self.dic_vect.get(label)] = 1
 
-        return vect
+        return vector
 
 
 class Cleaner:
@@ -405,50 +460,33 @@ class Cleaner:
         r = r.replace('&amp;', "&")
         return r
 
+
 class Freeling:
 
-    def __init__(self):
+    def __init__(self, dir_freeling=None):
 
-        # config = configparser.ConfigParser()
+        if dir_freeling is not None:
+            self.data_dir = dir_freeling
+        else:
+            self.data_dir = "/usr/share/freeling/"
 
-
-        # FREELING_LIB = config.get('freeling', 'lib')
-        data_dir = "FreeLing/data/en/"
-        data_dir_common = "FreeLing/data/common/"
+        self.data_dir_common = self.data_dir + "common/"
 
         freeling.util_init_locale("default")
 
-        self.la = freeling.lang_ident(data_dir_common + "lang_ident/ident.dat")
+        self.la = freeling.lang_ident(self.data_dir_common + "lang_ident/ident.dat")
 
+    def analyze_text(self, cad):
+        lang = self.la.identify_language(cad)
+        print("Language detected: " + lang + "\n")
+        if lang == "none":
+            lang = "en"
+            print("Changed to "+lang)
 
-        opt = freeling.maco_options('en')
-
-        # (usr, pun, dic, aff, comp, loc, nps, qty, prb)
-        opt.set_data_files("", data_dir_common + "punct.dat", data_dir + "",
-                                data_dir + "afixos.dat", data_dir + "compounds.dat",
-                                data_dir + "locucions.dat", data_dir + "np.dat",
-                                data_dir + "quantities.dat", data_dir + "probabilitats.dat")
-
-        self.mf = freeling.maco(opt)
-
-        # (umap, num, pun, dat, dic, aff, comp, rtk, mw, ner, qt, prb)
-        # (0, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0)
-        self.mf.set_active_options(0, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0)
-
-        self.tk = freeling.tokenizer(data_dir + "tokenizer.dat")
-        self.sp = freeling.splitter(data_dir + "splitter.dat")
+        self.config_files(lang, self.data_dir, self.data_dir_common)
 
         self.sid = self.sp.open_session()
 
-        self.tg = freeling.hmm_tagger(data_dir + "tagger.dat", True, 2)
-        self.sen = freeling.senses(data_dir + "senses.dat")
-
-        self.parser = freeling.chart_parser(data_dir + "chuncker/grammar-chunk.dat")
-
-        self.dep = freeling.dep_txala(data_dir + "/dep_txala/dependences.dat",
-                                 self.parser.get_start_symbol())
-
-    def test(self, cad):
         l = self.tk.tokenize(cad)
 
         self.ls = self.sp.split(
@@ -461,12 +499,123 @@ class Freeling:
         self.ls = self.parser.analyze(self.ls)
         self.ls = self.dep.analyze(self.ls)
 
+        self.ls = self.nec.analyze(self.ls)
+
         for s in self.ls:
+
             ws = s.get_words()
             for w in ws:
-                print(w.get_form() + " " + w.get_lemma() + " " + w.get_tag() + " " + w.get_senses_string())
-            print("")
+                print(w.get_form() + "|" + w.get_lemma() + "|" + w.get_tag() + "|" + w.get_senses_string())
 
-            tr = s.get_parse_tree()
-            print(tr,0)
-        self.sp.close_session(self.sid);
+                # print("-------TREE----------")
+                #
+                # tr = s.get_parse_tree()
+                # self.print_tree(tr, 0)
+                # print("-------DEPTH TREE-------")
+                # dp = s.get_dep_tree()
+                # self.print_dep_tree(dp, 0)
+        self.sp.close_session(self.sid)
+
+    def config_files(self, lang, data_dir, data_dir_common):
+
+        data_dir += lang + "/"
+        data_conf = data_dir + "nerc/nec/nec.cfg"
+
+        opt = freeling.maco_options(lang)
+
+        # (usr, pun, dic, aff, comp, loc, nps, qty, prb)
+        opt.set_data_files("",
+                           data_dir_common + "punct.dat",
+                           data_dir + "dicc.src",
+                           data_dir + "afixos.dat",
+                           data_dir + "compounds.dat",
+                           data_dir + "locucions.dat",
+                           data_dir + "np.dat",
+                           data_dir + "quantities.dat",
+                           data_dir + "probabilitats.dat")
+
+        self.mf = freeling.maco(opt)
+
+        # (umap, num, pun, dat, dic, aff, comp, rtk, mw, ner, qt, prb)
+        # (0, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0)
+        self.mf.set_active_options(False, True, True, True, False, True, True, True, True, True, True, True)
+
+        self.tk = freeling.tokenizer(data_dir + "tokenizer.dat")
+        self.sp = freeling.splitter(data_dir + "splitter.dat")
+
+        self.tg = freeling.hmm_tagger(data_dir + "tagger.dat", True, 2)
+        self.sen = freeling.senses(data_dir + "senses.dat")
+
+        self.parser = freeling.chart_parser(data_dir + "chunker/grammar-chunk.dat")
+
+        self.dep = freeling.dep_txala(data_dir + "/dep_txala/dependences.dat",
+                                      self.parser.get_start_symbol())
+
+        self.nec = freeling.nec(data_conf)
+
+    def print_tree(self, ptree, depth):
+        node = ptree.begin()
+
+        print(''.rjust(depth*2), end='')
+        info = node.get_info()
+        if info.is_head():
+            print('+', end='')
+        nch = node.num_children()
+        if nch == 0:
+            w = info.get_word()
+            print('{0} {1} {2}'.format(w.get_form(),
+                                       w.get_lemma(),
+                                       w.get_tag()
+                                       ),end='')
+        else:
+            print('{0}_['.format(info.get_label()))
+
+            for i in range(nch):
+                child = node.nth_child_ref(i)
+                self.print_tree(child, depth+1)
+
+                print(''.rjust(depth*2), end='')
+                print(']', end='')
+        print('')
+
+    def print_dep_tree(self, dtree, depth):
+        node = dtree.begin()
+
+        print(''.rjust(depth*2), end='')
+
+        info = node.get_info()
+        link = info.get_link()
+        # linfo = link.get_info()
+
+        print('{0}/{1}/'.format(
+            link.get_info().get_label(),
+            info.get_label()
+        ), end='')
+
+        w = node.get_info().get_word()
+        print('({0} {1} {2})'.format(w.get_form(),
+                                     w.get_lemma(),
+                                     w.get_tag), end='')
+
+        nch = node.num_children()
+
+        if nch > 0:
+            print(' [')
+
+            for i in range(nch):
+                d = node.nth_child_ref(i)
+                if not d.begin().get_info().is_chunk():
+                    self.print_dep_tree(d, depth+1)
+
+            ch = {}
+            for i in range(nch):
+                d = node.nth_child_ref(i)
+                if d.begin().get_info().is_chunk():
+                    ch[d.begin().get_info().get_chunk_ord()] = d
+
+            for i in sorted(ch.keys()):
+                self.print_dep_tree(ch[i], depth+1)
+
+            print(''.rjust(depth*2), end='')
+            print(']', end='')
+        print('')
