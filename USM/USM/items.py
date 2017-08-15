@@ -15,3 +15,5 @@ class UsmItem(scrapy.Item):
     id_person = scrapy.Field()
     search = scrapy.Field()
     attr = scrapy.Field()
+    engine_search = scrapy.Field()
+    number_snippet = scrapy.Field()

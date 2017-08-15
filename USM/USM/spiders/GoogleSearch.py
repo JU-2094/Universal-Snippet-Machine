@@ -22,7 +22,7 @@ class GoogleSpider(scrapy.Spider):
 
     name = "googlespider"
     start_urls = ["https://www.google.com.mx/"]
-
+    browser = 1
     custom_settings = {'DOWNLOAD_DELAY': '5'}
 
     def __init__(self, source=None, *args, **kwargs):
@@ -33,15 +33,42 @@ class GoogleSpider(scrapy.Spider):
             self.source = ""
 
     def parse(self, response):
+        type_b = self.source[-1]
         if self.source != "":
-            for search in Utils.get_query(Utils(), query=self.source):
+            if type_b == "1":
+                search = Utils.get_query_param(Utils(), self.source)
+
                 request = FormRequest.from_response(response,
                                                     formdata={'q': search[2]},
                                                     callback=self.google_selector)
                 request.meta['id_person'] = search[0]
                 request.meta['attr'] = search[1]
                 request.meta['search'] = search[2]
+                request.meta['num_snip'] = 0
                 yield request
+
+            elif type_b == "2":
+                df = Utils.read_csv(Utils(), self.source)
+                for search in Utils.get_query_csv(Utils(), df=df):
+                    request = FormRequest.from_response(response,
+                                                        formdata={'q': search[2]},
+                                                        callback=self.google_selector)
+                    request.meta['id_person'] = search[0]
+                    request.meta['attr'] = search[1]
+                    request.meta['search'] = search[2]
+                    request.meta['num_snip'] = 0
+                    yield request
+
+            else:
+                for search in Utils.get_query(Utils(), query=self.source):
+                    request = FormRequest.from_response(response,
+                                                        formdata={'q': search[2]},
+                                                        callback=self.google_selector)
+                    request.meta['id_person'] = search[0]
+                    request.meta['attr'] = search[1]
+                    request.meta['search'] = search[2]
+                    request.meta['num_snip'] = 0
+                    yield request
 
     def google_selector(self, response):
         base_url = "https://www.google.com.mx/"
@@ -51,8 +78,10 @@ class GoogleSpider(scrapy.Spider):
         id_person = response.meta['id_person']
         base_attr = response.meta['attr']
         search = response.meta['search']
+        num_snippet = response.meta['num_snip']
 
         for snippet in snippets:
+            num_snippet = num_snippet + 1
             storage_item = UsmItem()
 
             title = Selector(text=snippet).xpath("//a/b/text() | //a/text()").extract()
@@ -95,6 +124,10 @@ class GoogleSpider(scrapy.Spider):
                 self.log(search)
                 self.log("--------------ATTR---------------")
                 self.log(base_attr)
+                self.log("-----------ENGINE SEARCH---------")
+                self.log(self.browser)
+                self.log("------------NUMBER SNIPPET-------")
+                self.log(num_snippet)
 
                 storage_item['title'] = title
                 storage_item['cite'] = cite
@@ -102,7 +135,8 @@ class GoogleSpider(scrapy.Spider):
                 storage_item['id_person'] = id_person
                 storage_item['search'] = search
                 storage_item['attr'] = base_attr
-
+                storage_item['engine_search'] = self.browser
+                storage_item['number_snippet'] = num_snippet
 
                 itemproc.process_item(storage_item, self)
 
@@ -119,4 +153,5 @@ class GoogleSpider(scrapy.Spider):
                 request.meta['id_person'] = id_person
                 request.meta['search'] = search
                 request.meta['attr'] = base_attr
+                request.meta['num_snip'] = num_snippet
                 yield request

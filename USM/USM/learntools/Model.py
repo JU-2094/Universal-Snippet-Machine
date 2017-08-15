@@ -6,4 +6,5 @@ __author__ = "Josué Fabricio Urbina González"
 
 class SkipGram:
 
-    pass
+    def __init__(self):
+        pass
